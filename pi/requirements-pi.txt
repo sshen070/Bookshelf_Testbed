@@ -1,0 +1,8 @@
+# Minimal deps for the Pi -- no torch/ultralytics here, inference runs on the PC.
+opencv-python-headless>=4.9
+
+# picamera2 (official Pi Camera Module support) is NOT pip-installable cleanly
+# in a venv -- it needs the system libcamera bindings. Install it via apt instead:
+#   sudo apt install -y python3-picamera2
+# If using a plain USB webcam, skip picamera2 entirely and run
+# stream_server.py with --usb-cam.

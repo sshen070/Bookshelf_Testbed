@@ -1,0 +1,34 @@
+# Ultralytics YOLO training config for the "change" detector bootstrapped
+# from the classical pipeline's pseudo-labels.
+model:
+  # Start from the smallest pretrained backbone: the pseudo-label set will be
+  # noisy, and a small model is less likely to memorize that noise. Move up to
+  # yolov8s/m once you've hand-verified a chunk of labels and trust them.
+  base_weights: yolov8n.pt
+  imgsz: 640
+
+train:
+  epochs: 150
+  patience: 30          # early stop if val loss stalls -- pseudo-labels overfit fast
+  batch: 16
+  lr0: 0.001
+  # Freeze the backbone for the first few epochs so the head adapts to the
+  # single "change" class before touching pretrained features.
+  freeze: 10
+  # Augmentations tuned for a static-camera rig: no vertical flips (shelf has
+  # a fixed up/down), mild color jitter to simulate the lighting drift we
+  # expect, no mosaic (would create physically nonsensical scenes for a
+  # fixed-viewpoint anomaly detector).
+  hsv_h: 0.01
+  hsv_s: 0.3
+  hsv_v: 0.3
+  flipud: 0.0
+  fliplr: 0.0
+  mosaic: 0.0
+  degrees: 2.0
+  translate: 0.02
+  scale: 0.1
+
+data_yaml_out: data/yolo_dataset/data.yaml
+project: runs/yolo
+name: change_detector

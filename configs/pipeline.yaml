@@ -1,0 +1,88 @@
+# Classical change-detection pipeline configuration.
+# Tuned for the shelf lab rig now; every knob here is the one you'll
+# re-tune when this moves to outdoor dam imagery (see comments).
+
+paths:
+  reference_dir: data/reference        # bank of fixed-reference images (same camera pose, varied lighting)
+  raw_dir: data/raw                    # drop new captures here, in per-session subfolders
+  aligned_dir: data/processed/aligned
+  diff_dir: data/processed/diffs
+  labels_dir: data/processed/pseudo_labels
+  events_log: data/processed/events.jsonl   # one JSON line per image: classical pipeline's verdict
+  # NOTE: this assumes ONE fixed camera pose. If/when this becomes a multi-camera
+  # rig, each camera needs its own reference_dir/raw_dir subtree and its own
+  # independent registration+diff run -- homography only corrects drift within
+  # a single viewpoint, not real parallax across different camera angles.
+
+registration:
+  # ECC handles the common case: camera didn't move, only lighting/exposure drifted.
+  method: ecc                # ecc | orb
+  ecc_motion: homography      # translation | euclidean | affine | homography
+  ecc_max_iterations: 200
+  ecc_eps: 1.0e-6
+  # ORB is the fallback when ECC fails to converge (e.g. camera bumped, large shift).
+  orb_features: 2000
+  orb_good_match_ratio: 0.75
+  min_inliers_for_homography: 12
+  # If both fail, the image is flagged "registration_failed" rather than silently
+  # diffed against a misaligned reference (a dam camera nudged by wind must not
+  # masquerade as a structural change).
+  max_reprojection_error_px: 3.0
+
+lighting:
+  # Reference-bank selection stage 1 (always runs, cheap): pick whichever
+  # stored reference has the closest illumination profile to the incoming
+  # frame, so we're never diffing a bright frame against a dark reference.
+  reference_bank_metric: hist_correlation   # hist_correlation | mean_luminance
+  # Stage 2 (opt-in per call site via full_pipeline_cfg, see lighting.py):
+  # of the top-K lighting-shortlisted candidates, actually register+diff each
+  # and keep whichever has the lowest residual dissimilarity. This is what
+  # absorbs "object placed back a few mm off" jitter without ever discarding
+  # the founding baseline -- grow the bank instead (src/add_reference.py).
+  # Costs one real registration pass per shortlisted candidate, so keep this
+  # small for real-time use (live_infer.py); raise it for offline autolabeling
+  # where latency doesn't matter.
+  structural_shortlist_k: 3
+  # Local normalization applied to BOTH frames after alignment, before SSIM.
+  clahe_clip_limit: 2.0
+  clahe_tile_grid: [8, 8]
+  gray_world_white_balance: true
+
+ssim:
+  # Multi-scale: a large window catches big abrupt changes (a book falling over);
+  # a small window catches subtle, spatially-localized shifts (a binder nudged
+  # a few mm) -- this is the setting that has to carry over to hairline cracks.
+  win_sizes: [11, 5]
+  # Per-window weight when combining into one dissimilarity map (must sum to 1.0).
+  win_weights: [0.6, 0.4]
+  # Pixels with (1 - SSIM) above this are "different enough to consider".
+  # Lower this for outdoor/low-contrast crack imagery; raise it in the lab
+  # if lighting noise is triggering false positives.
+  diss_threshold: 0.25
+
+morphology:
+  open_kernel: 3        # remove salt-and-pepper noise from the threshold map
+  close_kernel: 9        # bridge small gaps so one physical change forms one blob
+  min_component_area_px: 150   # drop specks smaller than this (sensor noise, JPEG artifacts)
+
+bbox:
+  # Pad detected blobs slightly so YOLO sees a bit of context around the change.
+  pad_frac: 0.08
+  merge_iou_threshold: 0.3   # merge overlapping candidate boxes before export
+  max_boxes_per_image: 20    # sanity cap; more than this usually means noisy diff
+
+labeling:
+  class_name: change
+  # Images whose diff map produced zero boxes are kept as label-free background
+  # examples (teaches YOLO what "normal, including lighting drift" looks like).
+  keep_background_images: true
+  background_keep_ratio: 1.0   # fraction of background images to keep (downsample if you have too many)
+
+dataset_split:
+  train: 0.7
+  val: 0.2
+  test: 0.1
+  seed: 42
+  # Group by capture session (not by individual frame) so near-duplicate frames
+  # from the same event don't leak across splits.
+  group_by_session: true
