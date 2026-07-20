@@ -9,7 +9,7 @@ model:
 
 train:
   epochs: 150
-  patience: 10          # early stop if val loss stalls -- pseudo-labels overfit fast
+  patience: 30          # early stop if val loss stalls -- pseudo-labels overfit fast
   batch: 16
   lr0: 0.001
   # Freeze the backbone for the first few epochs so the head adapts to the

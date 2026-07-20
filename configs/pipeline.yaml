@@ -64,17 +64,6 @@ morphology:
   open_kernel: 3        # remove salt-and-pepper noise from the threshold map
   close_kernel: 9        # bridge small gaps so one physical change forms one blob
   min_component_area_px: 150   # drop specks smaller than this (sensor noise, JPEG artifacts)
-  # Solidity = contour area / convex-hull area. A real toppled/shifted object
-  # leaves a compact blob (high solidity); a registration/parallax artifact on
-  # loose hanging wires leaves a thin, sprawling, tangled shape (low solidity).
-  # 0 disables the filter.
-  #
-  # IMPORTANT if this ever points at real crack imagery instead of the lab
-  # shelf: a genuine hairline crack is ALSO a thin, low-solidity shape. This
-  # filter is tuned for "reject wire clutter" in a wire-heavy lab scene --
-  # revisit or disable it before relying on it against real cracks, where the
-  # same shape signature means the opposite thing.
-  min_solidity: 0.3
 
 bbox:
   # Pad detected blobs slightly so YOLO sees a bit of context around the change.

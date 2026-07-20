@@ -9,7 +9,6 @@ Usage:
     python run_pipeline.py add-reference data/raw/some_session/frame_003.jpg   # grow the reference bank (see src/add_reference.py)
     python run_pipeline.py reset --dry-run             # preview what a reset would clear
     python run_pipeline.py reset                       # clear derived artifacts, keep raw/reference/runs
-    python run_pipeline.py waft-boxes --waft-python /path/to/waft-venv/python.exe --frames a.jpg b.jpg
     python run_pipeline.py all                        # autolabel -> build-dataset -> train
 """
 from __future__ import annotations
@@ -23,14 +22,13 @@ from src.infer_and_crossvalidate import run_crossvalidation
 from src.live_infer import run_live
 from src.reset_pipeline import reset
 from src.train_yolo import train
-from src.waft_bridge import run_waft_boxes
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Shelf change-detection pipeline orchestrator.")
     parser.add_argument(
         "stage",
-        choices=["autolabel", "build-dataset", "train", "crossvalidate", "live", "add-reference", "reset", "waft-boxes", "all"],
+        choices=["autolabel", "build-dataset", "train", "crossvalidate", "live", "add-reference", "reset", "all"],
     )
     parser.add_argument("--pipeline-config", default="configs/pipeline.yaml")
     parser.add_argument("--yolo-config", default="configs/yolo.yaml")
@@ -46,13 +44,6 @@ def main() -> None:
     parser.add_argument("--raw", action="store_true", help="reset: also wipe data/raw/ captures (irreversible -- requires --yes).")
     parser.add_argument("--runs", action="store_true", help="reset: also wipe runs/yolo/ trained models (irreversible -- requires --yes).")
     parser.add_argument("--dry-run", action="store_true", help="reset: show what would be deleted without deleting.")
-    parser.add_argument("--waft-python", help="Required for waft-boxes: Python executable in WAFT's own environment.")
-    parser.add_argument("--waft-dir", default="WAFT/WAFT", help="waft-boxes: path to the WAFT repo root.")
-    parser.add_argument("--frames", nargs="+", help="Required for waft-boxes: ordered frame paths; consecutive pairs are processed.")
-    parser.add_argument("--waft-cfg", default="config/a2/twins/chairs-things.json", help="waft-boxes: WAFT model config, relative to --waft-dir.")
-    parser.add_argument("--waft-ckpt", default="checkpoints/a2/twins/zero-shot.pth", help="waft-boxes: WAFT checkpoint, relative to --waft-dir.")
-    parser.add_argument("--waft-output-dir", default="outputs/flow_boxes", help="waft-boxes: where to write boxes/overlays.")
-    parser.add_argument("--waft-magnitude-threshold", type=float, default=2.0, help="waft-boxes: flow magnitude (px) to count as motion.")
     args = parser.parse_args()
 
     if args.stage in ("autolabel", "all"):
@@ -77,20 +68,6 @@ def main() -> None:
         if (args.raw or args.runs) and not args.yes and not args.dry_run:
             parser.error("reset --raw/--runs delete irreplaceable data -- pass --yes to confirm, or --dry-run to preview first.")
         reset(args.pipeline_config, wipe_raw=args.raw, wipe_runs=args.runs, dry_run=args.dry_run)
-    if args.stage == "waft-boxes":
-        if not args.waft_python or not args.frames:
-            parser.error("waft-boxes requires --waft-python and --frames")
-        result = run_waft_boxes(
-            args.waft_python,
-            args.waft_dir,
-            args.frames,
-            args.waft_cfg,
-            args.waft_ckpt,
-            args.waft_output_dir,
-            extra_args=["--magnitude-threshold", str(args.waft_magnitude_threshold)],
-        )
-        for pair in result["pairs"]:
-            print(f"pair {pair['pair_index']}: {pair['num_boxes']} boxes -> {pair['overlay']}")
 
 
 if __name__ == "__main__":
