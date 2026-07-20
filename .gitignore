@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Generated data -- reproducible from data/raw + data/reference via run_pipeline.py
+data/processed/
+data/yolo_dataset/
+runs/
+
+# Raw captures and reference bank are the actual dataset -- track intentionally,
+# not accidentally excluded, but keep large binary blobs (videos) out.
+*.mp4
+*.avi
