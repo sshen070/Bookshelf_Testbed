@@ -66,11 +66,10 @@ def diss_map_to_boxes(diss_map: np.ndarray, cfg: dict) -> tuple[list[BBox], np.n
     if close_k > 1:
         thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, np.ones((close_k, close_k), np.uint8))
 
-    num_labels, labels_im, stats, _ = cv2.connectedComponentsWithStats(thresh, connectivity=8)
+    num_labels, _, stats, _ = cv2.connectedComponentsWithStats(thresh, connectivity=8)
     h, w = diss_map.shape[:2]
     pad_frac = cfg["bbox"]["pad_frac"]
     min_area = cfg["morphology"]["min_component_area_px"]
-    min_solidity = cfg["morphology"].get("min_solidity", 0.0)
 
     boxes = []
     for label in range(1, num_labels):  # skip background label 0
@@ -78,21 +77,6 @@ def diss_map_to_boxes(diss_map: np.ndarray, cfg: dict) -> tuple[list[BBox], np.n
         if area < min_area:
             continue
         x, y, bw, bh = (int(v) for v in stats[label, cv2.CC_STAT_LEFT: cv2.CC_STAT_LEFT + 4])
-
-        if min_solidity > 0:
-            # A real toppled/shifted object leaves a compact blob (high solidity =
-            # contour area / convex-hull area). A registration/parallax artifact on
-            # loose hanging wires leaves a thin, sprawling, tangled shape (low
-            # solidity) -- this is what actually distinguishes the two, not area.
-            component_crop = (labels_im[y : y + bh, x : x + bw] == label).astype(np.uint8) * 255
-            contours, _ = cv2.findContours(component_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if contours:
-                contour = max(contours, key=cv2.contourArea)
-                hull_area = cv2.contourArea(cv2.convexHull(contour))
-                solidity = (cv2.contourArea(contour) / hull_area) if hull_area > 0 else 1.0
-                if solidity < min_solidity:
-                    continue
-
         pad_x, pad_y = int(bw * pad_frac), int(bh * pad_frac)
         boxes.append(BBox(
             x1=max(0, x - pad_x),
