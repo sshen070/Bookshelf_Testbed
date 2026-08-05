@@ -1,0 +1,5 @@
+# Only needed for MQTT. --http and --dry-run run on the standard library alone,
+# so if you POST to a REST endpoint this file is optional.
+#
+# Pure Python, no compilation -- safe to install on aarch64 without a toolchain.
+paho-mqtt>=2.0

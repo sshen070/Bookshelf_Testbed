@@ -1,0 +1,37 @@
+# Example mosquitto config for the device-status link.
+#
+# Install as a DROP-IN, never by replacing /etc/mosquitto/mosquitto.conf:
+#   sudo cp mosquitto.conf.example /etc/mosquitto/conf.d/device_status.conf
+#   sudo systemctl restart mosquitto
+#
+# The packaged /etc/mosquitto/mosquitto.conf already sets pid_file, persistence,
+# logging and `include_dir /etc/mosquitto/conf.d`. This file only adds what is
+# missing, because re-declaring those is how you get a conflict -- two
+# `listener` lines on port 1883 make mosquitto exit with "Address already in
+# use" before it ever accepts a connection.
+#
+# Both status_client.py and status_server.py are MQTT *clients*. Neither is a
+# broker -- this configures the broker they both connect to.
+
+# Mosquitto 2.0 binds to loopback only when no listener is declared, so a remote
+# device gets "Connection refused" even with the broker healthy. This opens it.
+listener 1883 0.0.0.0
+
+# Mosquitto 2.0 also denies anonymous clients by default, which surfaces as
+# "Connection Refused: not authorised" -- easily mistaken for a wrong password.
+# Open, and appropriate only on a trusted lab LAN: anyone who can route here can
+# publish, including forging another device's status.
+allow_anonymous true
+
+# --- Optional: password protection -------------------------------------------
+# Uncomment BOTH lines below and set `allow_anonymous false` above, but CREATE
+# THE FILE FIRST -- mosquitto exits with status 3 ("Unable to open pwfile") and
+# systemd reports only "exit-code" if password_file points at something missing:
+#
+#   sudo mosquitto_passwd -c /etc/mosquitto/passwd jetson
+#   sudo chown mosquitto:mosquitto /etc/mosquitto/passwd
+#   sudo chmod 600 /etc/mosquitto/passwd
+#
+# Then pass --username jetson and STATUS_MQTT_PASSWORD=... on both ends.
+#
+# password_file /etc/mosquitto/passwd
