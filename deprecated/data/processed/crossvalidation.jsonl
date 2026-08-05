@@ -1,0 +1,6 @@
+{"image": "data\\raw\\image1\\image1.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 16, "n_matched": 13, "n_only_classical": 7, "n_only_yolo": 3, "mean_matched_iou": 0.8556430237985675}
+{"image": "data\\raw\\image2\\image2.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 16, "n_matched": 14, "n_only_classical": 6, "n_only_yolo": 2, "mean_matched_iou": 0.9210362995521489}
+{"image": "data\\raw\\image3\\image3.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 18, "n_matched": 16, "n_only_classical": 4, "n_only_yolo": 2, "mean_matched_iou": 0.8954777543368148}
+{"image": "data\\raw\\image4\\image4.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 18, "n_matched": 15, "n_only_classical": 5, "n_only_yolo": 3, "mean_matched_iou": 0.8936191219318643}
+{"image": "data\\raw\\image5\\image5.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 16, "n_matched": 12, "n_only_classical": 8, "n_only_yolo": 4, "mean_matched_iou": 0.8872363684555298}
+{"image": "data\\raw\\image6\\image6.jpg", "classical_changed": true, "yolo_changed": true, "n_classical": 20, "n_yolo": 15, "n_matched": 5, "n_only_classical": 15, "n_only_yolo": 10, "mean_matched_iou": 0.8181460513785753}
