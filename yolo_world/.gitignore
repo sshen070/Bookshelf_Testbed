@@ -1,0 +1,12 @@
+# Downloaded checkpoints -- yolov8s-worldv2 is ~50MB, the CLIP text encoder
+# ~340MB. Both are fetched on first use and cached; neither belongs in git.
+*.pt
+*.onnx
+*.engine
+
+# Baked vocabularies (python -m yolo_world bake) are derived artifacts.
+baked/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/

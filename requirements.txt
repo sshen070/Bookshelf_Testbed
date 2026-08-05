@@ -1,9 +1,0 @@
-opencv-python>=5.0.0
-scikit-image>=0.26
-numpy>=2.5
-PyYAML>=6.0
-ultralytics>=8.4
-tqdm>=4.68
-matplotlib>=3.11
-pytest>=9.1
-pillow-heif>=1.4

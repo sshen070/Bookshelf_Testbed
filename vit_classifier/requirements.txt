@@ -1,0 +1,19 @@
+# Standalone -- shares nothing with the deprecated pipeline's requirements.txt.
+#
+# On a Jetson Orin Nano do NOT pip install torch from here: install NVIDIA's
+# CUDA-enabled aarch64 wheel first (see WAFT/WAFT/README_EVENT_DETECTION.md,
+# "Setup on a Jetson Orin Nano"), then install the rest. A generic PyPI torch
+# is either CPU-only or x86 and will not use the GPU.
+#
+# If WAFT's own environment is already set up, it satisfies all of this
+# already -- it pins timm==1.0.27 alongside torch/torchvision.
+
+torch>=2.0
+timm>=1.0.27
+numpy>=1.24
+opencv-python>=4.8
+Pillow>=10.0
+PyYAML>=6.0
+
+# Tests only.
+pytest>=7.0

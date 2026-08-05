@@ -3,17 +3,56 @@
 # WAFT/WAFT submodule, which needs its own rules in WAFT/WAFT/.gitignore.
 .venv/
 venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+build/
+dist/
 
 .claude
+
+# Local secrets and machine-specific config (e.g. broker creds for
+# device_status). *.example files are the tracked templates.
+.env
+.env.*
+!.env.example
+
 # Generated data -- reproducible from data/raw + data/reference via run_pipeline.py
 data/processed/
 data/yolo_dataset/
 runs/
 
+# Pipeline / detector output trees. Every artifact under these is regenerated
+# by re-running the stage that produced it.
+outputs/
+output/
+results/
+
+# Model checkpoints. All of these are downloaded on first use (ultralytics
+# yolov8s-worldv2 / yoloe-11s-seg at the repo root, the ~340MB CLIP text
+# encoder under weights/) or produced by training, never hand-authored.
+*.pt
+*.pth
+*.onnx
+*.engine
+weights/
+
+# Derived embedding banks and their staging areas.
+.cache/
+*.npy
+*.npz
+
 # Raw captures and reference bank are the actual dataset -- track intentionally,
 # not accidentally excluded, but keep large binary blobs (videos) out.
 *.mp4
 *.avi
+*.mov
+
+# OS cruft
+.DS_Store
+Thumbs.db
