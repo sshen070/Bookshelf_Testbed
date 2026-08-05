@@ -1,0 +1,123 @@
+# YOLO-World open-vocabulary detector configuration.
+# Relative paths resolve against this file's directory, not the working
+# directory, so the CLI behaves the same wherever it is invoked from --
+# same convention as vit_classifier/config.yaml.
+
+model:
+  # yolov8s-worldv2 is the smallest checkpoint whose text alignment is
+  # actually usable; yolov8m-worldv2 scores higher on rare prompts and costs
+  # roughly 2x. Weights download on first use (~50MB) and are cached by
+  # ultralytics, so the first run needs network and later ones do not.
+  name: yolov8s-worldv2.pt
+  # Visual prompting is a DIFFERENT checkpoint -- YOLOE, not YOLO-World. Used
+  # only by the `visual` command; ~30MB, downloaded on first use.
+  visual_name: yoloe-11s-seg.pt
+  device: auto            # auto | cpu | cuda
+  # 640 is what the checkpoint was trained at. Measured on the Orin Nano:
+  # 320 -> 24 ms, 640 -> 34 ms. Below 640 small objects degrade faster than
+  # the latency improves, which is the wrong trade when the objects that
+  # matter (labels, damage) are already small.
+  imgsz: 640
+  # Deliberately low. Open-vocabulary confidences are NOT calibrated the way
+  # a closed-set detector's are -- measured on this testbed, `person` scored
+  # 0.89 while `green box` scored 0.32 for an equally unambiguous object.
+  # Filter by rank and by your own review, not by trusting this number.
+  conf: 0.05
+  iou: 0.7
+
+vocabulary:
+  # Named prompt sets. Switching vocabulary costs one CLIP text-encode and NO
+  # training -- this is the whole reason the model is here.
+  #
+  # Measured on the Orin Nano: the FIRST set_classes call costs ~6.7 s because
+  # it loads the CLIP text encoder; later calls in the same process cost
+  # 0.26-0.41 s. So switching vocabulary at runtime is cheap, but a process
+  # that classifies one event and exits pays 6.7 s every time -- load once and
+  # stay resident, or use `bake` to remove the text encoder entirely.
+  #
+  # Prompt wording matters more than it looks. Measured on the testbed frame:
+  # "person" 0.89 but "hand" 0.28 for the same hand; "shelf" 0.43 but
+  # "bookshelf" lower. Prefer the common noun a captioner would have used.
+  active: testbed
+
+  sets:
+    testbed:
+      - person
+      - book
+      - green box
+      - red box
+      - plant
+      - cable
+
+    # Same object vocabulary as vit_classifier/exemplars/, so the two systems
+    # can be scored on the same label space.
+    #
+    # The mapping form matters here. vit_classifier's classes are FOLDER NAMES,
+    # and a folder name is not a phrase CLIP has ever seen -- `CSN_boxes`
+    # scores near zero as a prompt. Each class is given the phrases that
+    # actually describe the object (checked against the exemplar images), and
+    # the class name is what gets reported. Several prompts per class also act
+    # as a small ensemble: any of them firing labels the region.
+    # Prompt wording was swept against hand-labelled regions, not guessed.
+    # The bare noun won every time: "book" found 7 regions at 0.22, while
+    # "book spines", "hardcover book" and "textbook" each found NOTHING, and
+    # "books on a shelf" boxed the whole frame because it names a scene rather
+    # than an object. Prefer the plainest noun; verify before trusting a
+    # longer phrase.
+    vit_parity:
+      books:
+        - book
+      containers:
+        - magazine file holder
+        - cardboard document holder
+        - upright box file
+      CSN_boxes:
+        - orange plastic storage box
+        - orange plastic bin with a lid
+      pickleballs:
+        - yellow perforated plastic ball
+        - wiffle ball
+      # No prompt found this object. "green stuffed animal toy", "stuffed
+      # animal", "teddy bear", "green plush toy" and "moss ball" all returned
+      # ZERO detections on a frame where it is plainly visible and unoccluded.
+      # This is a model limitation, not a wording problem -- vit_classifier
+      # identifies the same object at 0.65 from three exemplar photos. Left in
+      # so the failure stays visible in every comparison run.
+      plushie:
+        - green stuffed animal toy
+        - stuffed animal
+
+    # The requirements this package was actually built for. UNVALIDATED --
+    # no crack imagery exists in this testbed yet, so these prompts have
+    # never been scored against ground truth. `crack` returned 0.05 on a
+    # frame containing no crack, which is a correct true-negative and tells
+    # us nothing about recall. Treat as a starting point to measure, not a
+    # working configuration.
+    structural:
+      - person
+      - crack
+      - pillar
+      - pipe
+      - cable
+      - rust
+
+    # Sanity check that the model and pipeline are alive at all: `person` is
+    # the single best-represented concept in any of these checkpoints.
+    smoke:
+      - person
+
+events:
+  # Where camera_event_detector.py writes bursts. Read-only -- nothing in
+  # this package writes into WAFT's tree.
+  events_dir: ../WAFT/WAFT/outputs/camera_events/events
+  # Which frame of a burst to run on. The trigger frame is the moment motion
+  # crossed threshold; `post` frames are later and usually have less of the
+  # actor's hand in them.
+  frame_label: trigger
+
+compare:
+  # vit_classifier writes this next to WAFT's own waft_results/.
+  vit_result_name: vit_result.json
+  # Boxes are compared by IoU to decide whether the two systems are talking
+  # about the same region at all.
+  iou_match: 0.3

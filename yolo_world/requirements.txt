@@ -1,0 +1,15 @@
+# Open-vocabulary detection. torch is NOT pinned here on purpose.
+#
+# On a Jetson, install NVIDIA's CUDA aarch64 torch wheel FIRST (see
+# WAFT/WAFT/README_EVENT_DETECTION.md), then install ultralytics with
+# --no-deps. The generic PyPI ultralytics dependency chain will happily pull a
+# CPU-only or x86 torch over the top of a working CUDA build.
+#
+#   pip install --no-deps ultralytics ultralytics-thop
+#
+# ultralytics auto-installs `clip` (plus ftfy, regex, wcwidth) on first use of
+# the text encoder. `bake` exists so a deployed node never needs them.
+ultralytics>=8.3
+PyYAML>=6.0
+numpy
+opencv-python
