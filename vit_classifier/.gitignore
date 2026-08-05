@@ -1,0 +1,10 @@
+# Derived: embeddings are rebuilt from exemplars/ in seconds.
+.cache/
+
+# Staging area for crops awaiting hand-sorting. The sorted class folders
+# under exemplars/ ARE the dataset and should be tracked; this is not.
+exemplars/_unsorted/
+
+__pycache__/
+*.pyc
+.pytest_cache/

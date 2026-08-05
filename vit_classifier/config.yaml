@@ -1,0 +1,53 @@
+# ViT ROI classifier configuration.
+# Relative paths resolve against this file's directory, not the working
+# directory, so the CLI behaves the same wherever it's invoked from.
+
+model:
+  # Frozen feature extractor -- never fine-tuned. DINOv2 embeddings separate
+  # object instances well under k-NN with no training, which is what lets the
+  # bank grow by dropping in crops instead of retraining.
+  # Alternatives: vit_base_patch14_dinov2.lvd142m (stronger, ~4x slower),
+  #               vit_small_patch16_224.augreg_in21k (supervised, weaker k-NN).
+  name: vit_small_patch14_dinov2.lvd142m
+  # DINOv2's native 518px is slow on CPU; 224 interpolates the position
+  # embeddings down. Set to null for the checkpoint's native size -- better
+  # accuracy, much slower on CPU, and the right choice on the Jetson's GPU.
+  img_size: 224
+  device: auto            # auto | cpu | cuda
+
+bank:
+  exemplar_dir: exemplars               # exemplars/<class_name>/*.png
+  cache: .cache/exemplar_bank.npz       # derived; auto-rebuilds when exemplars change
+  # k-NN vote size. Keep this at or below your smallest per-class exemplar
+  # count, or that class can never win a full vote (build-bank warns).
+  # 3 because `containers` and `plushie` currently have only 3 exemplars each;
+  # raise this back toward 5 once every class has 5+.
+  knn_k: 3
+  # Cosine similarity below this -> "unknown" instead of the nearest class.
+  # This is the knob deciding how readily a never-before-seen object gets
+  # forced into an existing class. Raise it when the bank is small; lower it
+  # if legitimate objects keep coming back unknown.
+  #
+  # 0.35 from leave-one-out over the current bank: correct matches scored
+  # 0.38-0.94 while mean between-class similarity topped out around 0.16, so
+  # there is a wide safe band. 0.55 rejected a legitimate books exemplar that
+  # had already voted books 3/3. Re-tune once the bank holds real detector
+  # crops -- this band was measured on iPhone close-ups, not WAFT output.
+  min_similarity: 0.35
+
+crops:
+  # Extra context around each box. Motion boxes hug the moving pixels tightly,
+  # and a bare crop of an object edge is hard to identify without some
+  # surrounding scene for scale.
+  pad_frac: 0.15
+  # Grow the short side to match the long one so the ViT's square resize
+  # doesn't stretch a tall thin box into a shape it has never seen.
+  square: true
+  # Below this many pixels per side, skip rather than hand the model a smear.
+  min_size_px: 8
+
+transitions:
+  # The class name meaning "nothing here" -- what a removal transitions INTO
+  # and a placement out of. Must match an actual folder under exemplar_dir,
+  # or removals/placements can never be reported.
+  background_class: background
